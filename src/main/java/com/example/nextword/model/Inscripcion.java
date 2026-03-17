@@ -10,11 +10,11 @@ import java.time.LocalDateTime;
 @Table(name = "inscripciones")
 public class Inscripcion {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Id // Le asignamos un identificador para que la BD pueda saber que este campo es el id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)// Auto generamos el Identificador
+    private Long id;// Variable de ID
 
-    @ManyToOne
+    @ManyToOne// Relacion de muchos a uno
     @JoinColumn(name = "id_alumno", nullable = false)
     private Usuario alumno;
 
@@ -27,9 +27,9 @@ public class Inscripcion {
     private String modalidadSeleccionada; // 'presencial' o 'virtual'
 
     @Column(name = "datos_codigo_qr", length = 1000)
-    private String datosCodigoQr;
+    private String datosCodigoQr;// Aquí guardaremos los datos del código QR para que el móvil lo genere
 
-    @CreationTimestamp
+    @CreationTimestamp// Guardamos la fecha de creación al usuario
     @Column(name = "fecha_creacion", updatable = false)
     private LocalDateTime fechaCreacion;
 }
