@@ -2,6 +2,7 @@ package com.example.nextword.controller;
 
 import com.example.nextword.model.Inscripcion;
 import com.example.nextword.service.InscripcionService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,31 +17,20 @@ public class InscripcionController {
     }
 
     @PostMapping
-    public ResponseEntity<?> inscribir(@RequestBody Inscripcion inscripcion) {
-        try {
-            Inscripcion confirmacion = inscripcionService.inscribirAlumno(inscripcion);
-            return ResponseEntity.ok(confirmacion);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error al inscribir: " + e.getMessage());
-        }
+    public ResponseEntity<Inscripcion> inscribir(@RequestBody Inscripcion inscripcion) {
+        // ¡Cero try-catch! Si falla, el GlobalExceptionHandler lo atrapa
+        Inscripcion confirmacion = inscripcionService.inscribirAlumno(inscripcion);
+        return new ResponseEntity<>(confirmacion, HttpStatus.CREATED);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> obtenerPorId(@PathVariable Long id) {
-        try {
-            return ResponseEntity.ok(inscripcionService.obtenerInscripcionPorId(id));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
-        }
+    public ResponseEntity<Inscripcion> obtenerPorId(@PathVariable Long id) {
+        return ResponseEntity.ok(inscripcionService.obtenerInscripcionPorId(id));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> cancelarInscripcion(@PathVariable Long id) {
-        try {
-            inscripcionService.cancelarInscripcion(id);
-            return ResponseEntity.ok("Inscripción cancelada exitosamente. El horario vuelve a estar disponible.");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error al cancelar: " + e.getMessage());
-        }
+    public ResponseEntity<String> cancelarInscripcion(@PathVariable Long id) {
+        inscripcionService.cancelarInscripcion(id);
+        return ResponseEntity.ok("Inscripción cancelada exitosamente.");
     }
 }
