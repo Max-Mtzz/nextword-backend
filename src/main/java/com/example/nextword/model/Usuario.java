@@ -23,7 +23,7 @@ public class Usuario {
     @Column(name = "correo")
     private String email;
 
-    @Column(name = "contrasena") // Asegúrate de quitarle la "ñ" en Oracle
+    @Column(name = "contrasena")
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password;
 
@@ -45,10 +45,10 @@ public class Usuario {
     @Column(name = "telefono_emergencia")
     private String emergencyPhone;
 
-    @Column(name = "fecha_creacion", updatable = false)
+    @Column(name = "fecha_creacion", updatable = false)// aquí guardamos la fecha de creación del usuario
     private LocalDateTime createdAt;
 
-    @Column(name = "fecha_actualizacion")
+    @Column(name = "fecha_actualizacion")// aquí guardamos la fecha de creación del usuario
     private LocalDateTime updatedAt;
 
     @PrePersist
