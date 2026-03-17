@@ -10,58 +10,45 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/usuarios") // Todas las URLs de este archivo empezarán con esto
+@RequestMapping("/api/usuarios")
 public class UsuarioController {
 
     private final UsuarioService usuarioService;
 
-    // Inyección de dependencias
     public UsuarioController(UsuarioService usuarioService) {
         this.usuarioService = usuarioService;
     }
 
-    // 1. REGISTRAR UN USUARIO (POST: http://localhost:8080/api/usuarios/registro)
+    // 1. REGISTRAR
     @PostMapping("/registro")
-    public ResponseEntity<?> registrarUsuario(@RequestBody Usuario usuario) {
-        try {
-            // Intentamos guardar al usuario usando las reglas del Service
-            Usuario nuevoUsuario = usuarioService.registrarUsuario(usuario);
-            return new ResponseEntity<>(nuevoUsuario, HttpStatus.CREATED); // 201 Created
-        } catch (IllegalArgumentException e) {
-            // Si el correo o usuario ya existe, cachamos el error y respondemos bonito
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST); // 400 Bad Request
-        } catch (Exception e) {
-            // Si la base de datos de Oracle lo rechaza (ej. error de RegEx o contraseña corta)
-            return new ResponseEntity<>("Error al guardar en la base de datos: Revisa que los datos cumplan las reglas.", HttpStatus.BAD_REQUEST);
-        }
+    public ResponseEntity<Usuario> registrarUsuario(@RequestBody Usuario usuario) {
+        // Sin try-catch. Si el correo existe, el Handler lo atrapará automáticamente.
+        Usuario nuevoUsuario = usuarioService.registrarUsuario(usuario);
+        return new ResponseEntity<>(nuevoUsuario, HttpStatus.CREATED); 
     }
 
-    // 2. OBTENER TODOS LOS USUARIOS (GET: http://localhost:8080/api/usuarios)
+    // 2. OBTENER TODOS
     @GetMapping
     public ResponseEntity<List<Usuario>> obtenerTodos() {
-        return new ResponseEntity<>(usuarioService.obtenerTodosLosUsuarios(), HttpStatus.OK); // 200 OK
+        return new ResponseEntity<>(usuarioService.obtenerTodosLosUsuarios(), HttpStatus.OK); 
     }
 
-    // 3. OBTENER UN USUARIO POR SU ID (GET: http://localhost:8080/api/usuarios/1)
+    // 3. OBTENER POR ID
     @GetMapping("/{id}")
     public ResponseEntity<?> obtenerPorId(@PathVariable Long id) {
+        // Aquí dejamos el if-else porque Optional es una validación simple, no una Excepción.
         Optional<Usuario> usuario = usuarioService.obtenerUsuarioPorId(id);
-        
         if (usuario.isPresent()) {
             return new ResponseEntity<>(usuario.get(), HttpStatus.OK);
         } else {
-            return new ResponseEntity<>("Usuario no encontrado", HttpStatus.NOT_FOUND); // 404 Not Found
+            return new ResponseEntity<>("Usuario no encontrado", HttpStatus.NOT_FOUND); 
         }
     }
 
-    // 4. ELIMINAR UN USUARIO (DELETE: http://localhost:8080/api/usuarios/1)
+    // 4. ELIMINAR
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> eliminarUsuario(@PathVariable Long id) {
-        try {
-            usuarioService.eliminarUsuario(id);
-            return new ResponseEntity<>("Usuario eliminado exitosamente", HttpStatus.OK);
-        } catch (IllegalArgumentException e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
-        }
+    public ResponseEntity<String> eliminarUsuario(@PathVariable Long id) {
+        usuarioService.eliminarUsuario(id);
+        return new ResponseEntity<>("Usuario eliminado exitosamente", HttpStatus.OK);
     }
 }
