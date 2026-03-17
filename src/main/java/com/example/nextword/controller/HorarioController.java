@@ -17,36 +17,24 @@ public class HorarioController {
         this.horarioService = horarioService;
     }
 
-    // 1. CREAR HORARIO (POST: http://localhost:8080/api/horarios)
+    // 1. CREAR HORARIO
     @PostMapping
-    public ResponseEntity<?> crearHorario(@RequestBody Horario horario) {
-        try {
-            Horario nuevoHorario = horarioService.guardarHorario(horario);
-            return ResponseEntity.ok(nuevoHorario);
-        } catch (IllegalArgumentException e) {
-            // Atrapa errores de fechas incoherentes
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<Horario> crearHorario(@RequestBody Horario horario) {
+        Horario nuevoHorario = horarioService.guardarHorario(horario);
+        return ResponseEntity.ok(nuevoHorario);
     }
 
-    // 2. OBTENER HORARIOS POR CURSO (GET: http://localhost:8080/api/horarios/curso/1)
+    // 2. OBTENER POR CURSO
     @GetMapping("/curso/{cursoId}")
     public ResponseEntity<List<Horario>> listarPorCurso(@PathVariable Long cursoId) {
         return ResponseEntity.ok(horarioService.obtenerPorCurso(cursoId));
     }
 
-    // 3. ELIMINAR HORARIO (DELETE: http://localhost:8080/api/horarios/1)
+    // 3. ELIMINAR HORARIO
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> eliminarHorario(@PathVariable Long id) {
-        try {
-            horarioService.eliminarHorario(id); // Llama a la regla de las 24 horas
-            return ResponseEntity.ok("Horario eliminado exitosamente.");
-        } catch (IllegalArgumentException e) {
-            // ¡Aquí es donde atrapamos la regla de las 24 horas del DFR!
-            // Le mandamos el error al Frontend para que muestre un pop-up
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("Ocurrió un error al intentar eliminar el horario.");
-        }
+    public ResponseEntity<String> eliminarHorario(@PathVariable Long id) {
+        // La regla de las 24 horas lanzará la excepción desde el Service, el Handler la atrapa.
+        horarioService.eliminarHorario(id); 
+        return ResponseEntity.ok("Horario eliminado exitosamente.");
     }
 }
