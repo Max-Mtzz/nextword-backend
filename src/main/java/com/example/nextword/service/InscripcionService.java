@@ -121,10 +121,10 @@ public class InscripcionService {
                     + "El equipo de Nextword");
 
             mailSender.send(mensaje);
-            System.out.println("✅ Correo enviado exitosamente al docente: " + correoDocente);
+            System.out.println("Correo enviado exitosamente al docente: " + correoDocente);
 
         } catch (Exception e) {
-            System.err.println("❌ Error al enviar el correo: " + e.getMessage());
+            System.err.println("Error al enviar el correo: " + e.getMessage());
         }
     }
 }
