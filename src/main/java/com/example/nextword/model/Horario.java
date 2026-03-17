@@ -15,12 +15,12 @@ public class Horario {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Relación con Curso
+    // Relación que tiene con Curso
     @ManyToOne
     @JoinColumn(name = "id_curso", nullable = false)
     private Curso curso;
 
-    // Relación con el Docente (Perfil)
+    // Relación que tiene con el Docente (Perfil)
     @ManyToOne
     @JoinColumn(name = "id_docente", nullable = false)
     private Usuario docente;
