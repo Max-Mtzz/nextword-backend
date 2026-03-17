@@ -19,24 +19,20 @@ public class CursoController {
         this.cursoService = cursoService;
     }
 
-    // POST: http://localhost:8080/api/cursos
+    // 1. CREAR CURSO
     @PostMapping
-    public ResponseEntity<?> crearCurso(@RequestBody Curso curso) {
-        try {
-            Curso nuevoCurso = cursoService.crearCurso(curso);
-            return new ResponseEntity<>(nuevoCurso, HttpStatus.CREATED);
-        } catch (IllegalArgumentException e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
-        }
+    public ResponseEntity<Curso> crearCurso(@RequestBody Curso curso) {
+        Curso nuevoCurso = cursoService.crearCurso(curso);
+        return new ResponseEntity<>(nuevoCurso, HttpStatus.CREATED);
     }
 
-    // GET: http://localhost:8080/api/cursos
+    // 2. OBTENER TODOS
     @GetMapping
     public ResponseEntity<List<Curso>> obtenerCursos() {
         return new ResponseEntity<>(cursoService.obtenerTodos(), HttpStatus.OK);
     }
 
-    // GET: http://localhost:8080/api/cursos/1
+    // 3. OBTENER POR ID
     @GetMapping("/{id}")
     public ResponseEntity<?> obtenerPorId(@PathVariable Long id) {
         Optional<Curso> curso = cursoService.obtenerPorId(id);
@@ -47,14 +43,10 @@ public class CursoController {
         }
     }
 
-    // DELETE: http://localhost:8080/api/cursos/1
+    // 4. ELIMINAR CURSO
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> eliminarCurso(@PathVariable Long id) {
-        try {
-            cursoService.eliminarCurso(id);
-            return new ResponseEntity<>("Curso eliminado exitosamente", HttpStatus.OK);
-        } catch (IllegalArgumentException e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
-        }
+    public ResponseEntity<String> eliminarCurso(@PathVariable Long id) {
+        cursoService.eliminarCurso(id);
+        return new ResponseEntity<>("Curso eliminado exitosamente", HttpStatus.OK);
     }
 }
