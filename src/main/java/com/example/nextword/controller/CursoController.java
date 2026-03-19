@@ -14,7 +14,7 @@ import java.util.Optional;
 public class CursoController {
 
     private final CursoService cursoService;
-
+    // Constructor del controlador que conecta con el servicio del curso
     public CursoController(CursoService cursoService) {
         this.cursoService = cursoService;
     }
