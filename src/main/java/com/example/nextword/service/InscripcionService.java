@@ -95,6 +95,7 @@ public class InscripcionService {
     private void enviarCorreoAlDocente(Inscripcion inscripcion) {
         try {
             String correoDocente = inscripcion.getHorario().getDocente().getEmail();
+            String correoAlumno = inscripcion.getAlumno().getEmail();
             String nombreDocente = inscripcion.getHorario().getDocente().getFullName();
             String nombreAlumno = inscripcion.getAlumno().getFullName(); // ¡Ahora sí tendrá valor!
             String nombreCurso = inscripcion.getHorario().getCurso().getNombre();
@@ -112,6 +113,7 @@ public class InscripcionService {
             helper.setSubject("¡Nuevo alumno inscrito en tu clase de " + nombreCurso + "!");
             helper.setText("Hola Profesor(a) " + nombreDocente + ",\n\n"
                     + "Te informamos que el alumno " + nombreAlumno + " se ha inscrito a tu clase.\n\n"
+                    + "Correo del alumno: "+ correoAlumno +"\n"
                     + "Detalles de la clase:\n"
                     + "- Curso: " + nombreCurso + "\n"
                     + "- Fecha y Hora: " + fechaClase + "\n"
