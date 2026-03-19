@@ -32,6 +32,7 @@ public class UsuarioService {
         }
 
         // TODO: Aquí encriptaremos la contraseña en el futuro
+        // Apartado para la encriptacion de contraseñas
 
         // 3. Guardar en la base de datos
         return usuarioRepository.save(usuario);
