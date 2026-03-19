@@ -12,7 +12,7 @@ import java.util.List;
 public class HorarioController {
 
     private final HorarioService horarioService;
-
+    // Constructor del controlador que conecta con el servicio de los horarios
     public HorarioController(HorarioService horarioService) {
         this.horarioService = horarioService;
     }
