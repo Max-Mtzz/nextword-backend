@@ -1,5 +1,7 @@
 package com.example.nextword.controller;
 
+import com.example.nextword.dto.AuthResponse;
+import com.example.nextword.dto.LoginRequest;
 import com.example.nextword.model.Usuario;
 import com.example.nextword.service.UsuarioService;
 import org.springframework.http.HttpStatus;
@@ -50,5 +52,12 @@ public class UsuarioController {
     public ResponseEntity<String> eliminarUsuario(@PathVariable Long id) {
         usuarioService.eliminarUsuario(id);
         return new ResponseEntity<>("Usuario eliminado exitosamente", HttpStatus.OK);
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
+        // Como tenemos el GlobalExceptionHandler, no necesitamos try-catch
+        AuthResponse response = usuarioService.login(request);
+        return ResponseEntity.ok(response);
     }
 }
