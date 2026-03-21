@@ -66,10 +66,57 @@ public class CursoController {
         }
     }
 
-    // 4. ELIMINAR CURSO
+    // --- NUEVO: ACTUALIZAR CURSO (PUT) ---
+    @PutMapping("/{id}")
+    public ResponseEntity<?> actualizarCurso(
+            @PathVariable Long id,
+            @RequestParam("nombre") String nombre,
+            @RequestParam(value = "imagen", required = false) MultipartFile imagen) { // required=false significa que la imagen es opcional
+        
+        try {
+            Curso detallesCurso = new Curso();
+            detallesCurso.setNombre(nombre);
+
+            // Si el usuario nos manda una nueva imagen, borramos la vieja y subimos la nueva
+            if (imagen != null && !imagen.isEmpty()) {
+                // Buscamos el curso antiguo para borrar su imagen de la nube
+                Optional<Curso> cursoAntiguo = cursoService.obtenerPorId(id);
+                if (cursoAntiguo.isPresent() && cursoAntiguo.get().getUrlImagen() != null) {
+                    cloudinaryService.eliminarImagen(cursoAntiguo.get().getUrlImagen());
+                }
+                
+                // Subimos la nueva a la nube
+                String nuevaUrl = cloudinaryService.subirImagen(imagen);
+                detallesCurso.setUrlImagen(nuevaUrl);
+            }
+
+            // Guardamos en Base de Datos
+            Curso cursoActualizado = cursoService.actualizarCurso(id, detallesCurso);
+            return ResponseEntity.ok(cursoActualizado);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error al actualizar: " + e.getMessage());
+        }
+    }
+
+    // --- MODIFICADO: ELIMINAR CURSO ---
     @DeleteMapping("/{id}")
     public ResponseEntity<String> eliminarCurso(@PathVariable Long id) {
-        cursoService.eliminarCurso(id);
-        return new ResponseEntity<>("Curso eliminado exitosamente", HttpStatus.OK);
+        // 1. Buscamos el curso para obtener el link de la foto
+        Optional<Curso> cursoOpt = cursoService.obtenerPorId(id);
+        
+        if (cursoOpt.isPresent()) {
+            String urlImagen = cursoOpt.get().getUrlImagen();
+            
+            // 2. Si tiene foto, la borramos de Cloudinary
+            if (urlImagen != null && !urlImagen.isEmpty()) {
+                cloudinaryService.eliminarImagen(urlImagen); 
+            }
+            
+            // 3. Borramos el curso de la Base de Datos
+            cursoService.eliminarCurso(id); 
+            return new ResponseEntity<>("Curso y su imagen eliminados exitosamente", HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>("Curso no encontrado", HttpStatus.NOT_FOUND);
+        }
     }
 }

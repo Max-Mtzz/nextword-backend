@@ -32,4 +32,20 @@ public class CloudinaryService {
         Map uploadResult = cloudinary.uploader().upload(archivo.getBytes(), ObjectUtils.emptyMap());
         return uploadResult.get("secure_url").toString();
     }
+
+    // Añade este método en tu CloudinaryService.java
+    public void eliminarImagen(String urlImagen) {
+        try {
+            // Extraer el public_id de la URL (lo que va antes del .jpg o .png)
+            String[] partes = urlImagen.split("/");
+            String nombreArchivo = partes[partes.length - 1];
+            String publicId = nombreArchivo.split("\\.")[0];
+
+            // Le decimos a Cloudinary que la destruya
+            cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
+            System.out.println("☁️ Imagen eliminada de Cloudinary: " + publicId);
+        } catch (Exception e) {
+            System.err.println("❌ Error al eliminar imagen de Cloudinary: " + e.getMessage());
+        }
+    }
 }

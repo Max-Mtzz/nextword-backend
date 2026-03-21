@@ -38,4 +38,26 @@ public class CursoService {
         }
         cursoRepository.deleteById(id);
     }
+
+    // Añade este método en tu CursoService.java
+    public Curso actualizarCurso(Long id, Curso detallesCurso) {
+        Curso cursoExistente = cursoRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("El curso que intentas actualizar no existe."));
+
+        // Validar que el nuevo nombre no choque con otro curso existente
+        if (!cursoExistente.getNombre().equals(detallesCurso.getNombre()) && 
+            cursoRepository.existsByNombre(detallesCurso.getNombre())) {
+            throw new IllegalArgumentException("Error: Ya existe otro curso con este nombre.");
+        }
+
+        // Actualizamos el nombre
+        cursoExistente.setNombre(detallesCurso.getNombre());
+        
+        // Solo actualizamos la URL de la imagen si nos mandan una nueva
+        if (detallesCurso.getUrlImagen() != null) {
+            cursoExistente.setUrlImagen(detallesCurso.getUrlImagen());
+        }
+
+        return cursoRepository.save(cursoExistente);
+    }
 }
