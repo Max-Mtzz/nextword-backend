@@ -8,8 +8,14 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter; // Importante
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter; 
 import com.example.nextword.security.JwtRequestFilter;
+
+// Nuevas importaciones para CORS
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
@@ -26,7 +32,8 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable()) 
-            .cors(cors -> cors.configure(http)) 
+            // 1. Aquí le decimos que use nuestra configuración de CORS de abajo
+            .cors(cors -> cors.configurationSource(corsConfigurationSource())) 
             .authorizeHttpRequests(auth -> auth
                 // Rutas públicas
                 .requestMatchers("/api/usuarios/registro", "/api/usuarios/login").permitAll()
@@ -43,5 +50,24 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    // 2. Este es el bloque NUEVO para permitir que React se conecte sin errores
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        
+        // Aquí pones la URL de tu Frontend (revisa si tu Vite usa 5173 o 3000)
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173")); 
+        
+        // Métodos permitidos
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        
+        // Cabeceras permitidas (muy importante para que pase el Authorization Bearer)
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
+        
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 }
