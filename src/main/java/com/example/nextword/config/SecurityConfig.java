@@ -35,8 +35,8 @@ public class SecurityConfig {
             // 1. Aquí le decimos que use nuestra configuración de CORS de abajo
             .cors(cors -> cors.configurationSource(corsConfigurationSource())) 
             .authorizeHttpRequests(auth -> auth
-                // ¡AQUÍ ESTÁ EL CAMBIO! Agregamos las dos nuevas rutas públicas
-                .requestMatchers("/api/usuarios/registro", "/api/usuarios/login", "/api/usuarios/validar-recuperacion", "/api/usuarios/restablecer-password").permitAll()
+                // Rutas públicas
+                .requestMatchers("/api/usuarios/registro", "/api/usuarios/login").permitAll()
                 // El resto de rutas piden token
                 .anyRequest().authenticated()
             )
