@@ -5,7 +5,10 @@ import lombok.Data;
 
 import org.hibernate.annotations.CreationTimestamp;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.time.ZonedDateTime;
+import java.util.List;
 @Data
 @Entity
 @Table(name = "cursos")
@@ -25,4 +28,11 @@ public class Curso {
     @Column(name = "fecha_creacion", updatable = false)
     private ZonedDateTime fechaCreacion;
 
+    // Importa estas dos librerías arriba si no las tienes:
+    // import java.util.List;
+    // import com.fasterxml.jackson.annotation.JsonIgnore;
+
+    @OneToMany(mappedBy = "curso", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore // Súper importante para que al pedir los cursos no se haga un ciclo infinito
+    private List<Horario> horarios;
 }

@@ -25,8 +25,34 @@ public class HorarioService {
         return horarioRepository.save(horario);
     }
 
+    // --- ¡NUEVO MÉTODO QUE FALTABA! ---
+    public List<Horario> obtenerTodos() {
+        return horarioRepository.findAll();
+    }
+    // ----------------------------------
+
     public List<Horario> obtenerPorCurso(Long cursoId) {
         return horarioRepository.findByCursoId(cursoId);
+    }
+
+    public Horario actualizarHorario(Long id, Horario horarioActualizado) {
+        // 1. Buscamos que el horario realmente exista en la BD
+        Horario horarioExistente = horarioRepository.findById(id)
+            .orElseThrow(() -> new IllegalArgumentException("El horario no existe."));
+
+        // 2. Validamos la lógica de las horas
+        if (horarioActualizado.getFechaHoraFin().isBefore(horarioActualizado.getFechaHoraClase())) {
+            throw new IllegalArgumentException("La hora de fin no puede ser antes que la de inicio.");
+        }
+
+        // 3. Actualizamos los campos con los datos que llegaron de React
+        horarioExistente.setFechaHoraClase(horarioActualizado.getFechaHoraClase());
+        horarioExistente.setFechaHoraFin(horarioActualizado.getFechaHoraFin());
+        horarioExistente.setEstado(horarioActualizado.getEstado());
+        horarioExistente.setDocente(horarioActualizado.getDocente());
+        
+        // 4. Guardamos los cambios
+        return horarioRepository.save(horarioExistente);
     }
     
     public void eliminarHorario(Long id) {
