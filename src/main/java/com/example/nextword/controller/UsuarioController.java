@@ -74,19 +74,26 @@ public class UsuarioController {
     public ResponseEntity<?> validarCorreoRecuperacion(@RequestBody Map<String, String> request) {
         String correo = request.get("correo");
 
-        // Buscamos al usuario por correo
+        // --- CHISMOSOS PARA LA CONSOLA ---
+        System.out.println(">> [RECUPERACIÓN] Petición recibida para el correo: '" + correo + "'");
+
         Optional<Usuario> usuarioOpt = usuarioRepository.findByEmail(correo);
 
         if (usuarioOpt.isPresent()) {
             Usuario usuario = usuarioOpt.get();
-            // Validamos que sea docente
+            System.out.println(">> [RECUPERACIÓN] Usuario ENCONTRADO. Su rol es: '" + usuario.getRole() + "'");
+
             if (usuario.getRole().equalsIgnoreCase("docente")) {
+                System.out.println(">> [RECUPERACIÓN] ÉXITO: Es docente. Permitiendo el paso.");
                 return ResponseEntity.ok(Map.of("mensaje", "Usuario válido, puede continuar"));
             } else {
+                System.out.println(">> [RECUPERACIÓN] FALLO: Es " + usuario.getRole() + ", no docente.");
                 return ResponseEntity.badRequest()
                         .body(Map.of("error", "El correo pertenece a un alumno o administrador."));
             }
         }
+
+        System.out.println(">> [RECUPERACIÓN] FALLO: El correo no existe en la base de datos.");
         return ResponseEntity.badRequest().body(Map.of("error", "El correo no está registrado."));
     }
 
