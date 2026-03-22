@@ -11,6 +11,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 
 @Service
 public class InscripcionService {
@@ -75,8 +76,16 @@ public class InscripcionService {
         Inscripcion inscripcion = inscripcionRepository.findById(idInscripcion)
                 .orElseThrow(() -> new IllegalArgumentException("Inscripción no encontrada"));
 
-        if (LocalDateTime.now().plusHours(24).isAfter(inscripcion.getHorario().getFechaHoraClase())) {
-            throw new IllegalStateException("No puedes cancelar la clase con menos de 24 horas de anticipación.");
+        LocalDateTime ahora = LocalDateTime.now();
+        LocalDateTime fechaClase = inscripcion.getHorario().getFechaHoraClase();
+        long minutosDesdeInscripcion = ChronoUnit.MINUTES.between(inscripcion.getFechaCreacion(), ahora);
+
+        // Si la clase es en el FUTURO y faltan menos de 24 hrs
+        if (ahora.isBefore(fechaClase) && ahora.plusHours(24).isAfter(fechaClase)) {
+            // Período de gracia: Si se inscribió hace menos de 30 mins, lo dejamos cancelar (me equivoqué)
+            if (minutosDesdeInscripcion > 30) {
+                throw new IllegalStateException("No puedes cancelar la clase con menos de 24 horas de anticipación.");
+            }
         }
 
         Horario horario = inscripcion.getHorario();

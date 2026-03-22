@@ -35,16 +35,17 @@ public class HorarioService {
 
         LocalDateTime ahora = LocalDateTime.now();
         long horasDeAnticipacion = ChronoUnit.HOURS.between(ahora, horario.getFechaHoraClase());
+        long minutosDesdeCreacion = ChronoUnit.MINUTES.between(horario.getFechaActualizacion(), ahora);
 
-        // Si faltan menos de 24 horas (y la clase aún no ha pasado)
+        // Solo aplicamos la regla si la clase es en el FUTURO y faltan menos de 24 hrs
         if (horasDeAnticipacion >= 0 && horasDeAnticipacion < 24) {
-            throw new IllegalArgumentException("No es posible cancelar. Faltan " + horasDeAnticipacion + " horas para la clase.");
+            // Período de gracia: Si lo creó o editó hace menos de 30 mins, le permitimos borrar
+            if (minutosDesdeCreacion > 30) {
+                throw new IllegalArgumentException("No es posible cancelar. Faltan menos de 24 horas para la clase.");
+            }
         } 
-        // Por si intentan borrar una clase del pasado
-        else if (horasDeAnticipacion < 0) {
-            throw new IllegalArgumentException("No puedes eliminar una clase que ya pasó o ya comenzó.");
-        }
-
+        
+        // Eliminamos la validación de (horasDeAnticipacion < 0) para que el Admin pueda borrar históricos
         horarioRepository.deleteById(id);
     }
 }
