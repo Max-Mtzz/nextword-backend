@@ -20,12 +20,12 @@ public class UsuarioController {
 
     private final UsuarioService usuarioService;
     private final UsuarioRepository usuarioRepository; // ¡Agregamos el repositorio!
-    private final PasswordEncoder passwordEncoder;     // ¡Agregamos el encriptador!
+    private final PasswordEncoder passwordEncoder; // ¡Agregamos el encriptador!
 
     // Actualizamos el constructor para que Spring nos inyecte las 3 cosas
-    public UsuarioController(UsuarioService usuarioService, 
-                             UsuarioRepository usuarioRepository, 
-                             PasswordEncoder passwordEncoder) {
+    public UsuarioController(UsuarioService usuarioService,
+            UsuarioRepository usuarioRepository,
+            PasswordEncoder passwordEncoder) {
         this.usuarioService = usuarioService;
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
@@ -35,13 +35,13 @@ public class UsuarioController {
     @PostMapping("/registro")
     public ResponseEntity<Usuario> registrarUsuario(@RequestBody Usuario usuario) {
         Usuario nuevoUsuario = usuarioService.registrarUsuario(usuario);
-        return new ResponseEntity<>(nuevoUsuario, HttpStatus.CREATED); 
+        return new ResponseEntity<>(nuevoUsuario, HttpStatus.CREATED);
     }
 
     // 2. OBTENER TODOS
     @GetMapping
     public ResponseEntity<List<Usuario>> obtenerTodos() {
-        return new ResponseEntity<>(usuarioService.obtenerTodosLosUsuarios(), HttpStatus.OK); 
+        return new ResponseEntity<>(usuarioService.obtenerTodosLosUsuarios(), HttpStatus.OK);
     }
 
     // 3. OBTENER POR ID
@@ -51,7 +51,7 @@ public class UsuarioController {
         if (usuario.isPresent()) {
             return new ResponseEntity<>(usuario.get(), HttpStatus.OK);
         } else {
-            return new ResponseEntity<>("Usuario no encontrado", HttpStatus.NOT_FOUND); 
+            return new ResponseEntity<>("Usuario no encontrado", HttpStatus.NOT_FOUND);
         }
     }
 
@@ -73,17 +73,18 @@ public class UsuarioController {
     @PostMapping("/validar-recuperacion")
     public ResponseEntity<?> validarCorreoRecuperacion(@RequestBody Map<String, String> request) {
         String correo = request.get("correo");
-        
+
         // Buscamos al usuario por correo
         Optional<Usuario> usuarioOpt = usuarioRepository.findByEmail(correo);
-        
+
         if (usuarioOpt.isPresent()) {
             Usuario usuario = usuarioOpt.get();
-            // Validamos que sea docente 
+            // Validamos que sea docente
             if (usuario.getRole().equalsIgnoreCase("docente")) {
                 return ResponseEntity.ok(Map.of("mensaje", "Usuario válido, puede continuar"));
             } else {
-                return ResponseEntity.badRequest().body(Map.of("error", "El correo pertenece a un alumno o administrador."));
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "El correo pertenece a un alumno o administrador."));
             }
         }
         return ResponseEntity.badRequest().body(Map.of("error", "El correo no está registrado."));
@@ -96,15 +97,40 @@ public class UsuarioController {
         String nuevaPassword = request.get("nuevaPassword");
 
         Optional<Usuario> usuarioOpt = usuarioRepository.findByEmail(correo);
-        
+
         if (usuarioOpt.isPresent()) {
             Usuario usuario = usuarioOpt.get();
             // ¡ENCRIPTAMOS LA NUEVA CONTRASEÑA!
             usuario.setPassword(passwordEncoder.encode(nuevaPassword));
             usuarioRepository.save(usuario);
-            
+
             return ResponseEntity.ok(Map.of("mensaje", "Contraseña actualizada exitosamente"));
         }
         return ResponseEntity.badRequest().body(Map.of("error", "Hubo un problema al actualizar la contraseña."));
+    }
+
+    // 8. ACTUALIZAR USUARIO
+    @PutMapping("/{id}")
+    public ResponseEntity<?> actualizarUsuario(@PathVariable Long id, @RequestBody Usuario usuarioDetalles) {
+        Optional<Usuario> usuarioOpt = usuarioRepository.findById(id);
+
+        if (usuarioOpt.isPresent()) {
+            Usuario usuario = usuarioOpt.get();
+            usuario.setFullName(usuarioDetalles.getFullName());
+            usuario.setEmail(usuarioDetalles.getEmail());
+            usuario.setPrimaryPhone(usuarioDetalles.getPrimaryPhone());
+            usuario.setEmergencyPhone(usuarioDetalles.getEmergencyPhone());
+            usuario.setGender(usuarioDetalles.getGender());
+            usuario.setBirthDate(usuarioDetalles.getBirthDate());
+
+            // Solo actualizamos la contraseña si el usuario envió una nueva
+            if (usuarioDetalles.getPassword() != null && !usuarioDetalles.getPassword().isEmpty()) {
+                usuario.setPassword(passwordEncoder.encode(usuarioDetalles.getPassword()));
+            }
+
+            usuarioRepository.save(usuario);
+            return ResponseEntity.ok(Map.of("mensaje", "Usuario actualizado correctamente"));
+        }
+        return ResponseEntity.notFound().build();
     }
 }
