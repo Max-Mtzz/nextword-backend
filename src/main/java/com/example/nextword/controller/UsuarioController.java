@@ -3,6 +3,7 @@ package com.example.nextword.controller;
 import com.example.nextword.dto.AuthResponse;
 import com.example.nextword.dto.LoginRequest;
 import com.example.nextword.model.Usuario;
+import com.example.nextword.service.EmailService;
 import com.example.nextword.service.UsuarioService;
 import com.example.nextword.repository.UsuarioRepository;
 import org.springframework.http.HttpStatus;
@@ -21,14 +22,19 @@ public class UsuarioController {
     private final UsuarioService usuarioService;
     private final UsuarioRepository usuarioRepository; // ¡Agregamos el repositorio!
     private final PasswordEncoder passwordEncoder; // ¡Agregamos el encriptador!
+    // Arriba con tus otras dependencias
+    private final EmailService emailService;
+    // Usamos esto para guardar temporalmente el token generado para cada correo
+    private final Map<String, String> tokensRecuperacion = new java.util.concurrent.ConcurrentHashMap<>();
 
     // Actualizamos el constructor para que Spring nos inyecte las 3 cosas
     public UsuarioController(UsuarioService usuarioService,
             UsuarioRepository usuarioRepository,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder, EmailService emailService) {
         this.usuarioService = usuarioService;
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
+        this.emailService = emailService;
     }
 
     // 1. REGISTRAR
@@ -139,5 +145,86 @@ public class UsuarioController {
             return ResponseEntity.ok(Map.of("mensaje", "Usuario actualizado correctamente"));
         }
         return ResponseEntity.notFound().build();
+    }
+
+    // ==========================================
+    // NUEVOS ENDPOINTS PARA RECUPERAR ALUMNO
+    // ==========================================
+
+    // A. Solicitar y enviar token
+    @PostMapping("/solicitar-token")
+    public ResponseEntity<?> solicitarToken(@RequestBody Map<String, String> request) {
+        String correo = request.get("correo");
+
+        System.out.println(">> [ALUMNO] Iniciando recuperación para: " + correo);
+
+        Optional<Usuario> usuarioOpt = usuarioRepository.findByEmail(correo);
+
+        if (usuarioOpt.isPresent()) {
+            Usuario usuario = usuarioOpt.get();
+            System.out.println(">> [ALUMNO] Usuario encontrado. Rol en BD: '" + usuario.getRole() + "'");
+
+            // Usamos "alumno".equalsIgnoreCase(...) para evitar problemas si getRole()
+            // llegara nulo
+            if ("alumno".equalsIgnoreCase(usuario.getRole())) {
+                String token = String.format("%04d", new java.util.Random().nextInt(10000));
+                tokensRecuperacion.put(correo, token);
+
+                System.out.println(">> [ALUMNO] Token generado, intentando enviar correo...");
+
+                // AQUÍ ESTÁ LA CLAVE: El Try-Catch
+                try {
+                    emailService.enviarTokenRecuperacion(correo, token);
+                    System.out.println(">> [ALUMNO] ¡Correo enviado exitosamente!");
+                    return ResponseEntity.ok(Map.of("mensaje", "Token enviado al correo"));
+                } catch (Exception e) {
+                    System.out.println(">> [ALUMNO - ERROR FATAL] Falló el envío del correo: " + e.getMessage());
+                    e.printStackTrace(); // Esto nos dará el detalle exacto del fallo
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                            .body(Map.of("error", "Error interno al enviar el correo."));
+                }
+            } else {
+                System.out.println(">> [ALUMNO] Denegado: Su rol no es alumno.");
+                return ResponseEntity.badRequest().body(Map.of("error", "El correo no pertenece a un alumno."));
+            }
+        }
+
+        System.out.println(">> [ALUMNO] Error: El correo no existe en la base de datos.");
+        return ResponseEntity.badRequest().body(Map.of("error", "El correo no está registrado o no es alumno."));
+    }
+
+    // B. Validar el token escrito por el usuario
+    @PostMapping("/validar-token")
+    public ResponseEntity<?> validarToken(@RequestBody Map<String, String> request) {
+        String correo = request.get("correo");
+        String token = request.get("token");
+
+        // Revisamos si el token existe y coincide con el correo
+        if (token != null && token.equals(tokensRecuperacion.get(correo))) {
+            return ResponseEntity.ok(Map.of("mensaje", "Token válido"));
+        }
+        return ResponseEntity.badRequest().body(Map.of("error", "Token inválido o expirado"));
+    }
+
+    // C. Cambiar la contraseña usando el token
+    @PutMapping("/restablecer-password-alumno")
+    public ResponseEntity<?> restablecerPasswordAlumno(@RequestBody Map<String, String> request) {
+        String correo = request.get("correo");
+        String token = request.get("token");
+        String nuevaPassword = request.get("nuevaPassword");
+
+        // Doble validación de seguridad
+        if (token != null && token.equals(tokensRecuperacion.get(correo))) {
+            Optional<Usuario> usuarioOpt = usuarioRepository.findByEmail(correo);
+            if (usuarioOpt.isPresent()) {
+                Usuario usuario = usuarioOpt.get();
+                usuario.setPassword(passwordEncoder.encode(nuevaPassword));
+                usuarioRepository.save(usuario);
+
+                tokensRecuperacion.remove(correo); // Borramos el token para que no se re-use
+                return ResponseEntity.ok(Map.of("mensaje", "Contraseña actualizada exitosamente"));
+            }
+        }
+        return ResponseEntity.badRequest().body(Map.of("error", "El token es inválido, vuelve a solicitarlo."));
     }
 }

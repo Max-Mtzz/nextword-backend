@@ -39,7 +39,10 @@ public class SecurityConfig {
                                 "/api/usuarios/registro",
                                 "/api/usuarios/login",
                                 "/api/usuarios/validar-recuperacion", // <-- ¡Nueva!
-                                "/api/usuarios/restablecer-password" // <-- ¡Nueva!
+                                "/api/usuarios/restablecer-password",
+                                "/api/usuarios/solicitar-token",
+                                "/api/usuarios/validar-token",
+                                "/api/usuarios/restablecer-password-alumno" // <-- ¡Nueva!
                         ).permitAll()
                         // El resto de rutas piden token
                         .anyRequest().authenticated())
