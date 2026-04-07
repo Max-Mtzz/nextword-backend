@@ -12,6 +12,7 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 
 @Service
 public class InscripcionService {
@@ -98,6 +99,11 @@ public class InscripcionService {
     public Inscripcion obtenerInscripcionPorId(Long id) {
         return inscripcionRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Inscripción no encontrada"));
+    }
+
+    // --- ¡NUEVO! OBTENER INSCRIPCIONES POR ALUMNO ---
+    public List<Inscripcion> obtenerPorAlumno(Long alumnoId) {
+        return inscripcionRepository.findByAlumnoId(alumnoId);
     }
 
     // --- 3. MÉTODO PARA ENVIAR CORREOS (Con remitente personalizado) ---

@@ -2,6 +2,9 @@ package com.example.nextword.controller;
 
 import com.example.nextword.model.Inscripcion;
 import com.example.nextword.service.InscripcionService;
+
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -32,5 +35,11 @@ public class InscripcionController {
     public ResponseEntity<String> cancelarInscripcion(@PathVariable Long id) {
         inscripcionService.cancelarInscripcion(id);
         return ResponseEntity.ok("Inscripción cancelada exitosamente.");
+    }
+
+    // --- ¡NUEVO ENDPOINT! ---
+    @GetMapping("/alumno/{alumnoId}")
+    public ResponseEntity<List<Inscripcion>> obtenerPorAlumno(@PathVariable Long alumnoId) {
+        return ResponseEntity.ok(inscripcionService.obtenerPorAlumno(alumnoId));
     }
 }
