@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -17,41 +18,64 @@ public class HorarioService {
         this.horarioRepository = horarioRepository;
     }
 
-    public Horario guardarHorario(Horario horario) {
-        // Aquí podrías validar que la fecha de fin no sea antes que la de inicio
-        if (horario.getFechaHoraFin().isBefore(horario.getFechaHoraClase())) {
+    // --- ¡MÉTODO MODIFICADO PARA DIVIDIR EN HORAS! ---
+    public List<Horario> guardarHorario(Horario horarioPeticion) {
+        if (horarioPeticion.getFechaHoraFin().isBefore(horarioPeticion.getFechaHoraClase())) {
             throw new IllegalArgumentException("La hora de fin no puede ser antes que la de inicio.");
         }
-        return horarioRepository.save(horario);
+
+        List<Horario> bloquesGenerados = new ArrayList<>();
+        LocalDateTime horaActual = horarioPeticion.getFechaHoraClase();
+        LocalDateTime horaFinTotal = horarioPeticion.getFechaHoraFin();
+
+        // Ciclo para dividir el rango en bloques de 1 hora
+        while (horaActual.isBefore(horaFinTotal)) {
+            LocalDateTime finDeBloque = horaActual.plusHours(1);
+
+            // Evitamos pasarnos de la hora final por si ponen medias horas
+            if (finDeBloque.isAfter(horaFinTotal)) {
+                finDeBloque = horaFinTotal;
+            }
+
+            // Creamos un nuevo objeto por cada bloque de hora
+            Horario bloque = new Horario();
+            bloque.setCurso(horarioPeticion.getCurso());
+            bloque.setDocente(horarioPeticion.getDocente());
+            bloque.setEstado(horarioPeticion.getEstado() != null ? horarioPeticion.getEstado() : "disponible");
+            bloque.setFechaHoraClase(horaActual);
+            bloque.setFechaHoraFin(finDeBloque);
+
+            bloquesGenerados.add(bloque);
+
+            // Avanzamos a la siguiente hora
+            horaActual = finDeBloque;
+        }
+
+        // Guardamos todos los bloques de golpe en la base de datos
+        return horarioRepository.saveAll(bloquesGenerados);
     }
 
-    // --- ¡NUEVO MÉTODO QUE FALTABA! ---
     public List<Horario> obtenerTodos() {
         return horarioRepository.findAll();
     }
-    // ----------------------------------
 
     public List<Horario> obtenerPorCurso(Long cursoId) {
         return horarioRepository.findByCursoId(cursoId);
     }
 
     public Horario actualizarHorario(Long id, Horario horarioActualizado) {
-        // 1. Buscamos que el horario realmente exista en la BD
         Horario horarioExistente = horarioRepository.findById(id)
             .orElseThrow(() -> new IllegalArgumentException("El horario no existe."));
 
-        // 2. Validamos la lógica de las horas
         if (horarioActualizado.getFechaHoraFin().isBefore(horarioActualizado.getFechaHoraClase())) {
             throw new IllegalArgumentException("La hora de fin no puede ser antes que la de inicio.");
         }
 
-        // 3. Actualizamos los campos con los datos que llegaron de React
         horarioExistente.setFechaHoraClase(horarioActualizado.getFechaHoraClase());
         horarioExistente.setFechaHoraFin(horarioActualizado.getFechaHoraFin());
         horarioExistente.setEstado(horarioActualizado.getEstado());
         horarioExistente.setDocente(horarioActualizado.getDocente());
         
-        // 4. Guardamos los cambios
         return horarioRepository.save(horarioExistente);
     }
     
@@ -63,15 +87,12 @@ public class HorarioService {
         long horasDeAnticipacion = ChronoUnit.HOURS.between(ahora, horario.getFechaHoraClase());
         long minutosDesdeCreacion = ChronoUnit.MINUTES.between(horario.getFechaActualizacion(), ahora);
 
-        // Solo aplicamos la regla si la clase es en el FUTURO y faltan menos de 24 hrs
         if (horasDeAnticipacion >= 0 && horasDeAnticipacion < 24) {
-            // Período de gracia: Si lo creó o editó hace menos de 30 mins, le permitimos borrar
             if (minutosDesdeCreacion > 30) {
                 throw new IllegalArgumentException("No es posible cancelar. Faltan menos de 24 horas para la clase.");
             }
         } 
         
-        // Eliminamos la validación de (horasDeAnticipacion < 0) para que el Admin pueda borrar históricos
         horarioRepository.deleteById(id);
     }
 }
