@@ -10,6 +10,8 @@ import jakarta.mail.internet.MimeMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional; // <-- Importación agregada
+
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -32,18 +34,15 @@ public class InscripcionService {
         this.mailSender = mailSender;
     }
 
-    // --- 1. INSCRIBIR ---
+    @Transactional // <-- Agregado
     public Inscripcion inscribirAlumno(Inscripcion inscripcion) {
-        // Buscar el horario completo en BD
         Horario horario = horarioRepository.findById(inscripcion.getHorario().getId())
                 .orElseThrow(() -> new IllegalArgumentException("Horario no encontrado"));
 
-        // Buscar al alumno completo en BD para que no salga null
         Usuario alumno = usuarioRepository.findById(inscripcion.getAlumno().getId())
                 .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado"));
         inscripcion.setAlumno(alumno);
 
-        // Validar que no esté ya ocupado
         if (horario.getEstado().equals("ocupado")) {
             throw new IllegalStateException("Esta clase ya está ocupada por otro alumno.");
         }
@@ -54,14 +53,12 @@ public class InscripcionService {
         inscripcion.setHorario(horario);
         inscripcion.setModalidadSeleccionada(inscripcion.getModalidadSeleccionada().toLowerCase());
 
-        // --- ¡NUEVA LÓGICA DEL QR CON NOMBRES REALES! ---
         if (inscripcion.getModalidadSeleccionada().equals("presencial")) {
             String nombreCurso = horario.getCurso().getNombre();
             String nombreDocente = horario.getDocente().getFullName();
             String nombreAlumno = alumno.getFullName();
             String fechaClase = horario.getFechaHoraClase().toString();
 
-            // Usamos \n para que al escanearlo salga como una lista hacia abajo
             String datosQR = String.format(
                     "Curso: %s\nDocente: %s\nAlumno: %s\nFecha: %s\nModalidad: Presencial",
                     nombreCurso, nombreDocente, nombreAlumno, fechaClase
@@ -71,7 +68,6 @@ public class InscripcionService {
         } else {
             inscripcion.setDatosCodigoQr(null);
         }
-        // ------------------------------------------------
 
         Inscripcion nuevaInscripcion = inscripcionRepository.save(inscripcion);
         Inscripcion inscripcionCompleta = inscripcionRepository.findById(nuevaInscripcion.getId()).orElse(nuevaInscripcion);
@@ -81,7 +77,7 @@ public class InscripcionService {
         return inscripcionCompleta;
     }
 
-    // --- 2. CANCELAR INSCRIPCIÓN ---
+    @Transactional // <-- Agregado
     public void cancelarInscripcion(Long idInscripcion) {
         Inscripcion inscripcion = inscripcionRepository.findById(idInscripcion)
                 .orElseThrow(() -> new IllegalArgumentException("Inscripción no encontrada"));
@@ -108,12 +104,10 @@ public class InscripcionService {
                 .orElseThrow(() -> new IllegalArgumentException("Inscripción no encontrada"));
     }
 
-    // --- OBTENER INSCRIPCIONES POR ALUMNO ---
     public List<Inscripcion> obtenerPorAlumno(Long alumnoId) {
         return inscripcionRepository.findByAlumnoId(alumnoId);
     }
 
-    // --- 3. MÉTODO PARA ENVIAR CORREOS ---
     private void enviarCorreoAlDocente(Inscripcion inscripcion) {
         try {
             String correoDocente = inscripcion.getHorario().getDocente().getEmail();
