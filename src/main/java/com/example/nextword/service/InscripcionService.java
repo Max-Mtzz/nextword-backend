@@ -19,10 +19,9 @@ public class InscripcionService {
 
     private final InscripcionRepository inscripcionRepository;
     private final HorarioRepository horarioRepository;
-    private final UsuarioRepository usuarioRepository; // 1. Añadimos el repositorio del alumno
+    private final UsuarioRepository usuarioRepository;
     private final JavaMailSender mailSender; 
 
-    // Actualizamos el constructor
     public InscripcionService(InscripcionRepository inscripcionRepository, 
                               HorarioRepository horarioRepository,
                               UsuarioRepository usuarioRepository,
@@ -39,10 +38,10 @@ public class InscripcionService {
         Horario horario = horarioRepository.findById(inscripcion.getHorario().getId())
                 .orElseThrow(() -> new IllegalArgumentException("Horario no encontrado"));
 
-        // 2. ¡NUEVO! Buscar al alumno completo en BD para que no salga null
+        // Buscar al alumno completo en BD para que no salga null
         Usuario alumno = usuarioRepository.findById(inscripcion.getAlumno().getId())
                 .orElseThrow(() -> new IllegalArgumentException("Alumno no encontrado"));
-        inscripcion.setAlumno(alumno); // Le asignamos el alumno con todos sus datos
+        inscripcion.setAlumno(alumno);
 
         // Validar que no esté ya ocupado
         if (horario.getEstado().equals("ocupado")) {
@@ -55,14 +54,24 @@ public class InscripcionService {
         inscripcion.setHorario(horario);
         inscripcion.setModalidadSeleccionada(inscripcion.getModalidadSeleccionada().toLowerCase());
 
-        // Generar QR si es presencial
+        // --- ¡NUEVA LÓGICA DEL QR CON NOMBRES REALES! ---
         if (inscripcion.getModalidadSeleccionada().equals("presencial")) {
-            String datosQR = String.format("Horario_ID:%d|Alumno_ID:%d|Modalidad:Presencial",
-                    horario.getId(), inscripcion.getAlumno().getId());
+            String nombreCurso = horario.getCurso().getNombre();
+            String nombreDocente = horario.getDocente().getFullName();
+            String nombreAlumno = alumno.getFullName();
+            String fechaClase = horario.getFechaHoraClase().toString();
+
+            // Usamos \n para que al escanearlo salga como una lista hacia abajo
+            String datosQR = String.format(
+                    "Curso: %s\nDocente: %s\nAlumno: %s\nFecha: %s\nModalidad: Presencial",
+                    nombreCurso, nombreDocente, nombreAlumno, fechaClase
+            );
+            
             inscripcion.setDatosCodigoQr(datosQR);
         } else {
             inscripcion.setDatosCodigoQr(null);
         }
+        // ------------------------------------------------
 
         Inscripcion nuevaInscripcion = inscripcionRepository.save(inscripcion);
         Inscripcion inscripcionCompleta = inscripcionRepository.findById(nuevaInscripcion.getId()).orElse(nuevaInscripcion);
@@ -81,9 +90,7 @@ public class InscripcionService {
         LocalDateTime fechaClase = inscripcion.getHorario().getFechaHoraClase();
         long minutosDesdeInscripcion = ChronoUnit.MINUTES.between(inscripcion.getFechaCreacion(), ahora);
 
-        // Si la clase es en el FUTURO y faltan menos de 24 hrs
         if (ahora.isBefore(fechaClase) && ahora.plusHours(24).isAfter(fechaClase)) {
-            // Período de gracia: Si se inscribió hace menos de 30 mins, lo dejamos cancelar (me equivoqué)
             if (minutosDesdeInscripcion > 30) {
                 throw new IllegalStateException("No puedes cancelar la clase con menos de 24 horas de anticipación.");
             }
@@ -101,28 +108,25 @@ public class InscripcionService {
                 .orElseThrow(() -> new IllegalArgumentException("Inscripción no encontrada"));
     }
 
-    // --- ¡NUEVO! OBTENER INSCRIPCIONES POR ALUMNO ---
+    // --- OBTENER INSCRIPCIONES POR ALUMNO ---
     public List<Inscripcion> obtenerPorAlumno(Long alumnoId) {
         return inscripcionRepository.findByAlumnoId(alumnoId);
     }
 
-    // --- 3. MÉTODO PARA ENVIAR CORREOS (Con remitente personalizado) ---
+    // --- 3. MÉTODO PARA ENVIAR CORREOS ---
     private void enviarCorreoAlDocente(Inscripcion inscripcion) {
         try {
             String correoDocente = inscripcion.getHorario().getDocente().getEmail();
             String correoAlumno = inscripcion.getAlumno().getEmail();
             String nombreDocente = inscripcion.getHorario().getDocente().getFullName();
-            String nombreAlumno = inscripcion.getAlumno().getFullName(); // ¡Ahora sí tendrá valor!
+            String nombreAlumno = inscripcion.getAlumno().getFullName(); 
             String nombreCurso = inscripcion.getHorario().getCurso().getNombre();
             String fechaClase = inscripcion.getHorario().getFechaHoraClase().toString();
             String modalidad = inscripcion.getModalidadSeleccionada().toUpperCase();
 
-            // Usamos MimeMessage para poder configurar el remitente
             MimeMessage mensaje = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mensaje, true, "UTF-8");
 
-            // ¡Aquí ocurre la magia del remitente! 
-            // Cámbialo por tu correo de Gmail que configuraste en application.properties
             helper.setFrom("max.mtz.roman@gmail.com", "Equipo Nextword"); 
             helper.setTo(correoDocente);
             helper.setSubject("¡Nuevo alumno inscrito en tu clase de " + nombreCurso + "!");
